@@ -54,10 +54,12 @@ def get_total_emissions(start_time, end_time, cache, filter_regions=None, by=Non
         exclude_storage=exclude_storage)
     clean_table = raw_table.drop_duplicates(subset=['Time', 'DUID'])
 
-    # Aggregate DUID data to regions
-    en_colname = clean_table.columns[clean_table.columns.str.contains('Energy')][0]
-    res = clean_table[['Time', 'Region', en_colname, 'Total_Emissions']].groupby(['Time', 'Region'])\
-        .sum().reset_index()
+    # Aggregate DUID data to regions. Emissions are computed from sent-out energy when `generation_sent_out`, so the
+    # intensity must divide by sent-out energy too (the table holds both 'Energy' and 'Energy_SO').
+    en_source = 'Energy_SO' if generation_sent_out and 'Energy_SO' in clean_table.columns else 'Energy'
+    res = clean_table[['Time', 'Region', en_source, 'Total_Emissions']].rename(columns={en_source: 'Energy'})\
+        .groupby(['Time', 'Region']).sum().reset_index()
+    en_colname = 'Energy'
 
     # Create NEM agggregation
     if filter_regions == None:

@@ -54,15 +54,16 @@ def test_month_aggregation_ends_december_in_january():
 
 def test_nem_total_with_pandas_2(monkeypatch):
     t = pd.Timestamp("2024-08-01 00:05")
+    # As generated (Energy) and sent out (Energy_SO): emissions come from sent-out energy, so the intensity must too.
     per_unit = pd.DataFrame([
-        {"DUID": "A", "Time": t, "Region": "NSW1", "Energy_SO": 10.0, "Total_Emissions": 6.0},
-        {"DUID": "B", "Time": t, "Region": "VIC1", "Energy_SO": 5.0, "Total_Emissions": 4.0},
+        {"DUID": "A", "Time": t, "Region": "NSW1", "Energy": 11.0, "Energy_SO": 10.0, "Total_Emissions": 6.0},
+        {"DUID": "B", "Time": t, "Region": "VIC1", "Energy": 5.5, "Energy_SO": 5.0, "Total_Emissions": 4.0},
     ])
     monkeypatch.setattr(front_end.nd, "get_total_emissions_by_DI_DUID", lambda *a, **k: per_unit)
     monkeypatch.setattr(front_end.hp, "_check_cache", lambda cache: cache)
     out = nemed.get_total_emissions("2024/08/01 00:00", "2024/08/01 00:05", "cache")
     nem = out[out["Region"] == "NEM"].iloc[0]
-    assert nem["Energy_SO"] == 15.0 and nem["Total_Emissions"] == 10.0
+    assert nem["Energy"] == 15.0 and nem["Total_Emissions"] == 10.0
     assert nem["Intensity_Index"] == pytest.approx(10 / 15)
 
 
